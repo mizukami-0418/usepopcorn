@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 const tempMovieData = [
   {
@@ -50,21 +50,9 @@ const tempWatchedData = [
 const average = (arr) =>
   arr.reduce((acc, cur, i, arr) => acc + cur / arr.length, 0);
 
-const apiKey = import.meta.env.VITE_OMDb_API_KEY;
-const apiUrl = import.meta.env.VITE_OMDb_API_URL;
-
 export default function App() {
-  const [movies, setMovies] = useState([]);
-  const [watched, setWatched] = useState([]);
-
-  console.log(apiKey);
-  console.log(apiUrl);
-
-  useEffect(function () {
-    fetch(`${apiUrl}?apikey=${apiKey}&s=interstellar`)
-      .then((res) => res.json())
-      .then((data) => setMovies(data.Search));
-  }, []);
+  const [movies, setMovies] = useState(tempMovieData);
+  const [watched, setWatched] = useState(tempWatchedData);
 
   return (
     <>
@@ -167,6 +155,7 @@ function WatchedBox() {
 */
 
 function MovieList({ movies }) {
+
   return (
     <ul className="list">
       {movies?.map((movie) => (

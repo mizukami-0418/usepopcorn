@@ -1,8 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { useState } from "react";
-// import './index.css'
-// import App from './App.jsx'
+import "./index.css";
+import App from "./App.jsx";
 import StarRating from "./StarRating";
 
 function Test() {
@@ -18,9 +18,9 @@ function Test() {
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    {/* <App /> */}
-    <StarRating maxRating={5} messages={["a", "b", "c", "d", "e"]} />
+    <App />
+    {/* <StarRating maxRating={5} messages={["a", "b", "c", "d", "e"]} />
     <StarRating size={24} color="red" className="test" defaultRating={3} />
-    <Test />
+    <Test /> */}
   </StrictMode>
 );
