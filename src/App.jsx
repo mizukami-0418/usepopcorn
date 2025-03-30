@@ -56,14 +56,15 @@ const apiUrl = import.meta.env.VITE_OMDb_API_URL;
 export default function App() {
   const [movies, setMovies] = useState([]);
   const [watched, setWatched] = useState([]);
-
-  console.log(apiKey);
-  console.log(apiUrl);
+  const query = "avengers";
 
   useEffect(function () {
-    fetch(`${apiUrl}?apikey=${apiKey}&s=interstellar`)
-      .then((res) => res.json())
-      .then((data) => setMovies(data.Search));
+    async function fetchMovies() {
+      const res = await fetch(`${apiUrl}?apikey=${apiKey}&s=${query}`);
+      const data = await res.json();
+      setMovies(data.Search);
+    }
+    fetchMovies();
   }, []);
 
   return (
