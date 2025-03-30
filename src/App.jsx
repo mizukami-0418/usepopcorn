@@ -56,13 +56,16 @@ const apiUrl = import.meta.env.VITE_OMDb_API_URL;
 export default function App() {
   const [movies, setMovies] = useState([]);
   const [watched, setWatched] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const query = "avengers";
 
   useEffect(function () {
     async function fetchMovies() {
+      setIsLoading(true);
       const res = await fetch(`${apiUrl}?apikey=${apiKey}&s=${query}`);
       const data = await res.json();
       setMovies(data.Search);
+      setIsLoading(false);
     }
     fetchMovies();
   }, []);
@@ -75,7 +78,7 @@ export default function App() {
       </Navbar>
       <Main>
         <Box movies={movies}>
-          <MovieList movies={movies} />
+          {isLoading ? <Loader /> : <MovieList movies={movies} />}
         </Box>
         <Box>
           <WatchedSummary watched={watched} />
@@ -83,6 +86,17 @@ export default function App() {
         </Box>
       </Main>
     </>
+  );
+}
+
+function Loader() {
+  return (
+    <div className="loader">
+      <span className="loader__text">Loading...</span>
+      <span className="loader__emoji" role="img">
+        🍿
+      </span>
+    </div>
   );
 }
 
