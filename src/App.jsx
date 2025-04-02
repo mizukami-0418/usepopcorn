@@ -1,3 +1,4 @@
+import { func } from "prop-types";
 import { useState, useEffect } from "react";
 
 const tempMovieData = [
@@ -54,31 +55,65 @@ const apiKey = import.meta.env.VITE_OMDb_API_KEY;
 const apiUrl = import.meta.env.VITE_OMDb_API_URL;
 
 export default function App() {
+  const [query, setQuery] = useState("");
   const [movies, setMovies] = useState([]);
   const [watched, setWatched] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const query = "avengers";
+  const [error, setError] = useState("");
+  const tempQuery = "batman";
 
-  useEffect(function () {
-    async function fetchMovies() {
-      setIsLoading(true);
-      const res = await fetch(`${apiUrl}?apikey=${apiKey}&s=${query}`);
-      const data = await res.json();
-      setMovies(data.Search);
-      setIsLoading(false);
-    }
-    fetchMovies();
-  }, []);
+  useEffect(
+    function () {
+      async function fetchMovies() {
+        try {
+          setIsLoading(true);
+          setError("");
+          const res = await fetch(`${apiUrl}?apikey=${apiKey}&s=${query}`);
+
+          if (!res.ok) {
+            throw new Error("映画の取得に失敗しました");
+          }
+
+          const data = await res.json();
+          if (data.Response === "False") {
+            throw new Error("映画が見つかりませんでした");
+          }
+
+          setMovies(data.Search);
+          setError("");
+          console.log(data);
+        } catch (err) {
+          console.error(err.message);
+          setError(err.message);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+
+      if (query.length < 3) {
+        setMovies([]);
+        setError("");
+        console.log("3文字以上のクエリを入力してください");
+        return;
+      }
+      fetchMovies();
+    },
+    [query]
+  );
 
   return (
     <>
       <Navbar>
-        <Search />
+        <Search query={query} setQuery={setQuery} />
         <NumResults movies={movies} />
       </Navbar>
       <Main>
-        <Box movies={movies}>
-          {isLoading ? <Loader /> : <MovieList movies={movies} />}
+        {/* <Box movies={movies}> */}
+        <Box>
+          {/* {isLoading ? <Loader /> : <MovieList movies={movies} />} */}
+          {isLoading && <Loader />}
+          {!isLoading && !error && <MovieList movies={movies} />}
+          {error && <ErrorMessage message={error} />}
         </Box>
         <Box>
           <WatchedSummary watched={watched} />
@@ -96,6 +131,14 @@ function Loader() {
       <span className="loader__emoji" role="img">
         🍿
       </span>
+    </div>
+  );
+}
+
+function ErrorMessage({ message }) {
+  return (
+    <div className="error">
+      <p>{message}</p>
     </div>
   );
 }
@@ -118,14 +161,12 @@ function Logo() {
   );
 }
 
-function Search() {
-  const [query, setQuery] = useState("");
-
+function Search({ query, setQuery }) {
   return (
     <input
       className="search"
       type="text"
-      placeholder="Search movies..."
+      placeholder="映画を検索..."
       value={query}
       onChange={(e) => setQuery(e.target.value)}
     />
