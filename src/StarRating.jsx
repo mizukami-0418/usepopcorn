@@ -71,12 +71,10 @@ export default function StarRating({
 
 function Star({ onRate, full, onHoverIn, onHoverOut, color, size }) {
   const starStyle = {
-    width: "48px",
-    hight: "48px",
+    width: `${size}px`,
+    hight: `${size}px`,
     display: "block",
     cursor: "pointer",
-    color: color,
-    fontSize: size,
   };
 
   return (
