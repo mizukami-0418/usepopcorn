@@ -1,7 +1,7 @@
-import { func } from "prop-types";
-import { useState, useEffect, use } from "react";
+import { useState, useEffect } from "react";
 import StarRating from "./StarRating";
 
+// 映画のサンプルデータ
 const tempMovieData = [
   {
     imdbID: "tt1375666",
@@ -26,6 +26,8 @@ const tempMovieData = [
   },
 ];
 
+// 映画の視聴済みデータ
+// ここでは、映画の視聴済みデータをサンプルとして使用しています。
 const tempWatchedData = [
   {
     imdbID: "tt1375666",
@@ -52,10 +54,12 @@ const tempWatchedData = [
 const average = (arr) =>
   arr.reduce((acc, cur, i, arr) => acc + cur / arr.length, 0);
 
+// APIキーとURLを環境変数から取得
 const apiKey = import.meta.env.VITE_OMDb_API_KEY;
 const apiUrl = import.meta.env.VITE_OMDb_API_URL;
 
 export default function App() {
+  // useStateの設定
   const [query, setQuery] = useState("");
   const [movies, setMovies] = useState([]);
   const [watched, setWatched] = useState([]);
@@ -63,55 +67,84 @@ export default function App() {
   const [error, setError] = useState("");
   const [selectedId, setSelectedId] = useState(null);
 
+  // 選択時の映画IDを設定
+  // 映画を選択したときに呼び出される関数
+  // setSelectedIdをidに設定し、idがすでに選択されている場合はnullに設定
+  // それ以外の場合はidに設定
   function handleSelectMovie(id) {
     setSelectedId((selectedId) => (id === selectedId ? null : id));
   }
 
+  // 映画の詳細を閉じる
+  // 閉じるボタンを押したときに呼び出される関数
+  // setSelectedIdをnullに設定
   function handleCloseMovie() {
     setSelectedId(null);
   }
 
+  // 視聴済み映画を追加する関数
+  // setWatchedを現在のwatchedにmovieを追加したものに設定
+  // movieは映画のオブジェクト
   function handleAddWatched(movie) {
     setWatched((watched) => [...watched, movie]);
   }
 
+  // 視聴済み映画を削除する関数
+  // setSelectedIdをnullに設定
+  // setWatchedを現在のwatchedからidと一致しない映画をフィルタリングしたものに設定
   function handleDeleteWatched(id) {
     setSelectedId(null);
     setWatched((watched) => watched.filter((movie) => movie.imdbID !== id));
   }
 
+  // 映画の検索を行うuseEffect
   useEffect(
+    // 映画の検索を行う関数
+    // useEffectの第2引数にqueryを設定
+    // queryが変更されたときに呼び出される
     function () {
+      // AbortControllerを使用してfetchをキャンセルする
+      // AbortControllerは、fetchのキャンセルを行うためのAPI
       const controller = new AbortController();
 
+      // fetchMovies関数は、映画を取得するための関数
+      // fetchのオプションには、signalを設定
+      // signalは、AbortControllerのsignalを使用して設定
       async function fetchMovies() {
         try {
-          setIsLoading(true);
-          setError("");
+          setIsLoading(true); // ローディング中に設定
+          setError(""); // エラーメッセージを空に設定
           const res = await fetch(`${apiUrl}?apikey=${apiKey}&s=${query}`, {
             signal: controller.signal,
           });
 
+          // レスポンスがokでない場合はエラーを投げる
+          // res.okは、レスポンスがokであるかどうかを示すプロパティ
           if (!res.ok) {
             throw new Error("映画の取得に失敗しました");
           }
 
+          // レスポンスをJSON形式に変換
+          // res.jsonは、レスポンスをJSON形式に変換するメソッド
+          // dataは、JSON形式に変換したデータ
           const data = await res.json();
           if (data.Response === "False") {
             throw new Error("映画が見つかりませんでした");
           }
 
-          setMovies(data.Search);
-          setError("");
+          setMovies(data.Search); // 映画のデータを設定
+          setError(""); // エラーメッセージを空に設定
         } catch (err) {
+          // エラーがAbortErrorでない場合はエラーメッセージを設定
           if (err.name !== "AbortError") {
             setError(err.message);
           }
         } finally {
-          setIsLoading(false);
+          setIsLoading(false); // ローディング中をfalseに設定
         }
       }
 
+      // クエリが3文字以上でない場合は、映画のデータを空に設定
       if (query.length < 3) {
         setMovies([]);
         setError("");
@@ -119,14 +152,16 @@ export default function App() {
         return;
       }
 
-      handleCloseMovie();
-      fetchMovies();
+      handleCloseMovie(); // 映画の詳細を閉じる
+      fetchMovies(); // 映画の取得を行う
 
+      // クリーンアップ関数を返す
+      // useEffectのクリーンアップ関数は、コンポーネントがアンマウントされるときに呼び出される
       return () => {
         controller.abort();
       };
     },
-    [query]
+    [query] // queryが変更されたときに呼び出される
   );
 
   return (
@@ -139,13 +174,17 @@ export default function App() {
         {/* <Box movies={movies}> */}
         <Box>
           {/* {isLoading ? <Loader /> : <MovieList movies={movies} />} */}
+          {/* ローディング中はLoaderを表示 */}
           {isLoading && <Loader />}
+          {/* 映画のデータがある場合はMovieListを表示 */}
           {!isLoading && !error && (
             <MovieList movies={movies} onSelectMovie={handleSelectMovie} />
           )}
+          {/* 映画のデータがない場合はエラーメッセージを表示 */}
           {error && <ErrorMessage message={error} />}
         </Box>
         <Box>
+          {/* selectIDがある場合はMovieDetailsを表示 */}
           {selectedId ? (
             <MovieDetails
               selectedId={selectedId}
@@ -154,6 +193,7 @@ export default function App() {
               watched={watched}
             />
           ) : (
+            // selectIDがない場合は映画の詳細を表示しない
             <>
               <WatchedSummary watched={watched} />
               <WatchedMoviesList
@@ -168,6 +208,7 @@ export default function App() {
   );
 }
 
+// ローディング中に表示するコンポーネント
 function Loader() {
   return (
     <div className="loader">
@@ -179,6 +220,7 @@ function Loader() {
   );
 }
 
+// エラーメッセージを表示するコンポーネント
 function ErrorMessage({ message }) {
   return (
     <div className="error">
@@ -187,6 +229,8 @@ function ErrorMessage({ message }) {
   );
 }
 
+// ナビゲーションバーのコンポーネント
+// childrenをpropsとして受け取る
 function Navbar({ children }) {
   return (
     <nav className="nav-bar">
@@ -196,6 +240,8 @@ function Navbar({ children }) {
   );
 }
 
+// ロゴのコンポーネント
+// usePopcornのロゴを表示するコンポーネント
 function Logo() {
   return (
     <div className="logo">
@@ -205,6 +251,9 @@ function Logo() {
   );
 }
 
+// 映画の検索ボックスのコンポーネント
+// queryとsetQueryをpropsとして受け取る
+// queryは検索ボックスの値
 function Search({ query, setQuery }) {
   return (
     <input
@@ -217,6 +266,9 @@ function Search({ query, setQuery }) {
   );
 }
 
+// 検索結果の数を表示するコンポーネント
+// moviesをpropsとして受け取る
+// moviesは検索結果の映画の配列
 function NumResults({ movies }) {
   return (
     <p className="num-results">
@@ -225,15 +277,22 @@ function NumResults({ movies }) {
   );
 }
 
+// メインコンテンツのコンポーネント
+// childrenをpropsとして受け取る
+// childrenはメインコンテンツの子要素
 function Main({ children }) {
   return <main className="main">{children}</main>;
 }
 
+// 映画のボックスのコンポーネント
+// childrenをpropsとして受け取る
+// childrenは映画のボックスの子要素
 function Box({ children }) {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
     <div className="box">
+      {/* トグルボタンをクリックすると、isOpenの値が反転する */}
       <button className="btn-toggle" onClick={() => setIsOpen((open) => !open)}>
         {isOpen ? "–" : "+"}
       </button>
@@ -266,8 +325,12 @@ function WatchedBox() {
 }
 */
 
+// 映画のリストを表示するコンポーネント
+// moviesをpropsとして受け取る
+// moviesは検索結果の映画の配列
 function MovieList({ movies, onSelectMovie }) {
   return (
+    // 映画のリストを表示する
     <ul className="list list-movies">
       {movies?.map((movie) => (
         <Movie movie={movie} key={movie.imdbID} onSelectMovie={onSelectMovie} />
@@ -276,8 +339,12 @@ function MovieList({ movies, onSelectMovie }) {
   );
 }
 
+// 映画のコンポーネント
+// movieとonSelectMovieをpropsとして受け取る
 function Movie({ movie, onSelectMovie }) {
   return (
+    // 映画のリストを表示する
+    // 映画をクリックすると、onSelectMovieが呼び出される
     <li onClick={() => onSelectMovie(movie.imdbID)}>
       <img src={movie.Poster} alt={`${movie.Title} poster`} />
       <h3>{movie.Title}</h3>
@@ -291,6 +358,8 @@ function Movie({ movie, onSelectMovie }) {
   );
 }
 
+// 映画の詳細を表示するコンポーネント
+// selectedIdとonCloseMovieをpropsとして受け取る
 function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
   const [movie, setMovie] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -314,6 +383,7 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
     Plot: plot,
   } = movie;
 
+  // 映画の自己評価を追加する関数
   function handleAdd() {
     const newWatchedMovie = {
       imdbID: selectedId,
@@ -328,6 +398,7 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
     onCloseMovie();
   }
 
+  // Escapeキーを押したときに映画の詳細を閉じる
   useEffect(() => {
     function callback(e) {
       if (e.code === "Escape") {
@@ -341,6 +412,8 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
     };
   }, [onCloseMovie]);
 
+  // 映画の詳細を取得するuseEffect
+  // selectedIdが変更されたときに呼び出される
   useEffect(() => {
     async function getMovieDetails() {
       setIsLoading(true);
@@ -353,6 +426,8 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
     getMovieDetails();
   }, [selectedId]);
 
+  // タイトルを設定するuseEffect
+  // titleが変更されたときに呼び出される
   useEffect(() => {
     if (!title) return;
     document.title = `usePopcorn | ${title}`;
@@ -364,6 +439,9 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
 
   return (
     <div className="details">
+      {/* 映画の詳細を表示する */}
+      {/* isLoadingがtrueの場合はLoaderを表示 */}
+      {/* isLoadingがfalseの場合は映画の詳細を表示 */}
       {isLoading ? (
         <Loader />
       ) : (
@@ -391,6 +469,7 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
           </header>
           <section>
             <div className="rating">
+              {/* 星の数を選んで映画の自己評価を追加する */}
               {!isWatched ? (
                 <>
                   <StarRating
@@ -406,6 +485,7 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
                   )}
                 </>
               ) : (
+                // 評価済みの映画の場合
                 <p>
                   <span>
                     あなたは評価は<span>🌟</span>
@@ -414,6 +494,7 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
                 </p>
               )}
             </div>
+            {/* 映画の紹介 */}
             <p>
               <strong>あらすじ</strong>
             </p>
@@ -429,6 +510,8 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
   );
 }
 
+// 視聴済み映画の評価を表示するコンポーネント
+// watchedをpropsとして受け取る
 function WatchedSummary({ watched }) {
   const avgImdbRating = average(watched.map((movie) => movie.imdbRating));
   const avgUserRating = average(watched.map((movie) => movie.userRating));
@@ -461,6 +544,8 @@ function WatchedSummary({ watched }) {
   );
 }
 
+// 視聴済み映画のリストを表示するコンポーネント
+// watchedをpropsとして受け取る
 function WatchedMoviesList({ watched }) {
   return (
     <ul className="list">
@@ -471,6 +556,8 @@ function WatchedMoviesList({ watched }) {
   );
 }
 
+// 視聴済み映画のコンポーネント
+// movieとonDeleteWatchedをpropsとして受け取る
 function WatchedMovie({ movie, onDeleteWatched }) {
   return (
     <li>
