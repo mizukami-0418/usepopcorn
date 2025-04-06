@@ -1,5 +1,5 @@
 import { func } from "prop-types";
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import StarRating from "./StarRating";
 
 const tempMovieData = [
@@ -75,17 +75,22 @@ export default function App() {
     setWatched((watched) => [...watched, movie]);
   }
 
-  function handleDeleteWatched(movie) {
+  function handleDeleteWatched(id) {
+    setSelectedId(null);
     setWatched((watched) => watched.filter((movie) => movie.imdbID !== id));
   }
 
   useEffect(
     function () {
+      const controller = new AbortController();
+
       async function fetchMovies() {
         try {
           setIsLoading(true);
           setError("");
-          const res = await fetch(`${apiUrl}?apikey=${apiKey}&s=${query}`);
+          const res = await fetch(`${apiUrl}?apikey=${apiKey}&s=${query}`, {
+            signal: controller.signal,
+          });
 
           if (!res.ok) {
             throw new Error("映画の取得に失敗しました");
@@ -98,10 +103,10 @@ export default function App() {
 
           setMovies(data.Search);
           setError("");
-          console.log(data);
         } catch (err) {
-          console.error(err.message);
-          setError(err.message);
+          if (err.name !== "AbortError") {
+            setError(err.message);
+          }
         } finally {
           setIsLoading(false);
         }
@@ -113,7 +118,13 @@ export default function App() {
         console.log("3文字以上のクエリを入力してください");
         return;
       }
+
+      handleCloseMovie();
       fetchMovies();
+
+      return () => {
+        controller.abort();
+      };
     },
     [query]
   );
@@ -284,10 +295,12 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
   const [movie, setMovie] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [userRating, setUserRating] = useState("");
+
   const isWatched = watched.map((movie) => movie.imdbID).includes(selectedId);
   const watchedUserRating = watched.find(
     (movie) => movie.imdbID === selectedId
   )?.userRating;
+
   const {
     Title: title,
     Year: year,
@@ -316,6 +329,19 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
   }
 
   useEffect(() => {
+    function callback(e) {
+      if (e.code === "Escape") {
+        onCloseMovie();
+      }
+    }
+    document.addEventListener("keydown", callback);
+
+    return () => {
+      document.removeEventListener("keydown", callback);
+    };
+  }, [onCloseMovie]);
+
+  useEffect(() => {
     async function getMovieDetails() {
       setIsLoading(true);
       const res = await fetch(`${apiUrl}?apikey=${apiKey}&i=${selectedId}`);
@@ -326,6 +352,15 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
     }
     getMovieDetails();
   }, [selectedId]);
+
+  useEffect(() => {
+    if (!title) return;
+    document.title = `usePopcorn | ${title}`;
+
+    return () => {
+      document.title = "usePopcorn";
+    };
+  }, [title]);
 
   return (
     <div className="details">
