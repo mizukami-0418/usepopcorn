@@ -333,21 +333,7 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
     Plot: plot,
   } = movie;
 
-  // if (imdbRating > 8.0) [isTop, setIsTop] = useState(true);
-  // if (imdbRating > 8.0) return <p>Top Movie</p>;
-  // const [isTop, setIsTop] = useState(imdbRating > 8.0);
-  // console.log(isTop);
-  // useEffect(
-  //   function () {
-  //     setIsTop(imdbRating > 8.0);
-  //   },
-  //   [imdbRating]
-  // );
-
-  const isTop = imdbRating > 8.0;
-  console.log(isTop);
-
-  const [avgRating, setAvgRating] = useState(0);
+  if (imdbRating > 8) return <p>この映画は高評価です</p>;
 
   // 映画の自己評価を追加する関数
   function handleAdd() {
@@ -362,9 +348,6 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
     };
     onAddWatched(newWatchedMovie);
     onCloseMovie();
-
-    // setAvgRating(Number(imdbRating));
-    // setAvgRating((avgRating) => (avgRating + userRating) / 2);
   }
 
   // Escapeキーを押したときに映画の詳細を閉じる
@@ -436,7 +419,6 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
               </p>
             </div>
           </header>
-          {/* <p>{avgRating}</p> */}
           <section>
             <div className="rating">
               {/* 星の数を選んで映画の自己評価を追加する */}
@@ -516,15 +498,11 @@ function WatchedSummary({ watched }) {
 
 // 視聴済み映画のリストを表示するコンポーネント
 // watchedをpropsとして受け取る
-function WatchedMoviesList({ watched, onDeleteWatched }) {
+function WatchedMoviesList({ watched }) {
   return (
     <ul className="list">
       {watched.map((movie) => (
-        <WatchedMovie
-          movie={movie}
-          key={movie.imdbID}
-          onDeleteWatched={onDeleteWatched}
-        />
+        <WatchedMovie movie={movie} key={movie.imdbID} />
       ))}
     </ul>
   );
