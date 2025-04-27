@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import StarRating from "./StarRating";
+import { useMovies } from "./useMovies";
 
 const average = (arr) =>
   arr.reduce((acc, cur, i, arr) => acc + cur / arr.length, 0);
@@ -11,11 +12,17 @@ const apiUrl = import.meta.env.VITE_OMDb_API_URL;
 export default function App() {
   // useStateの設定
   const [query, setQuery] = useState("");
-  const [movies, setMovies] = useState([]);
-  const [watched, setWatched] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
   const [selectedId, setSelectedId] = useState(null);
+  const { movies, isLoading, error } = useMovies(query);
+
+  useMovies(query);
+  // const [watched, setWatched] = useState([]);
+  const [watched, setWatched] = useState(function () {
+    // localStorageからwatchedを取得
+    const storedValue = localStorage.getItem("watched");
+    // storedValueがnullの場合は空の配列を返す
+    return JSON.parse(storedValue);
+  });
 
   // 選択時の映画IDを設定
   // 映画を選択したときに呼び出される関数
@@ -37,7 +44,16 @@ export default function App() {
   // movieは映画のオブジェクト
   function handleAddWatched(movie) {
     setWatched((watched) => [...watched, movie]);
+
+    // localStorage.setItem("watched", JSON.stringify([...watched, movie]));
   }
+
+  useEffect(
+    function () {
+      localStorage.setItem("watched", JSON.stringify(watched));
+    },
+    [watched]
+  );
 
   // 視聴済み映画を削除する関数
   // setSelectedIdをnullに設定
@@ -46,73 +62,6 @@ export default function App() {
     setSelectedId(null);
     setWatched((watched) => watched.filter((movie) => movie.imdbID !== id));
   }
-
-  // 映画の検索を行うuseEffect
-  useEffect(
-    // 映画の検索を行う関数
-    // useEffectの第2引数にqueryを設定
-    // queryが変更されたときに呼び出される
-    function () {
-      // AbortControllerを使用してfetchをキャンセルする
-      // AbortControllerは、fetchのキャンセルを行うためのAPI
-      const controller = new AbortController();
-
-      // fetchMovies関数は、映画を取得するための関数
-      // fetchのオプションには、signalを設定
-      // signalは、AbortControllerのsignalを使用して設定
-      async function fetchMovies() {
-        try {
-          setIsLoading(true); // ローディング中に設定
-          setError(""); // エラーメッセージを空に設定
-          const res = await fetch(`${apiUrl}?apikey=${apiKey}&s=${query}`, {
-            signal: controller.signal,
-          });
-
-          // レスポンスがokでない場合はエラーを投げる
-          // res.okは、レスポンスがokであるかどうかを示すプロパティ
-          if (!res.ok) {
-            throw new Error("映画の取得に失敗しました");
-          }
-
-          // レスポンスをJSON形式に変換
-          // res.jsonは、レスポンスをJSON形式に変換するメソッド
-          // dataは、JSON形式に変換したデータ
-          const data = await res.json();
-          if (data.Response === "False") {
-            throw new Error("映画が見つかりませんでした");
-          }
-
-          setMovies(data.Search); // 映画のデータを設定
-          setError(""); // エラーメッセージを空に設定
-        } catch (err) {
-          // エラーがAbortErrorでない場合はエラーメッセージを設定
-          if (err.name !== "AbortError") {
-            setError(err.message);
-          }
-        } finally {
-          setIsLoading(false); // ローディング中をfalseに設定
-        }
-      }
-
-      // クエリが3文字以上でない場合は、映画のデータを空に設定
-      if (query.length < 3) {
-        setMovies([]);
-        setError("");
-        console.log("3文字以上のクエリを入力してください");
-        return;
-      }
-
-      handleCloseMovie(); // 映画の詳細を閉じる
-      fetchMovies(); // 映画の取得を行う
-
-      // クリーンアップ関数を返す
-      // useEffectのクリーンアップ関数は、コンポーネントがアンマウントされるときに呼び出される
-      return () => {
-        controller.abort();
-      };
-    },
-    [query] // queryが変更されたときに呼び出される
-  );
 
   return (
     <>
@@ -205,6 +154,30 @@ function Logo() {
 // queryとsetQueryをpropsとして受け取る
 // queryは検索ボックスの値
 function Search({ query, setQuery }) {
+  const inputEl = useRef(null);
+
+  useEffect(
+    function () {
+      function callback(e) {
+        if (document.activeElement === inputEl.current) return;
+
+        if (e.code === "Enter") {
+          inputEl.current.focus();
+          setQuery("");
+        }
+      }
+      document.addEventListener("keydown", callback);
+      return () => document.addEventListener("keydown", callback);
+    },
+    [setQuery]
+  );
+
+  // useEffect(function () {
+  //   const el = document.querySelector(".search");
+  //   console.log(el);
+  //   el.focus();
+  // }, []);
+
   return (
     <input
       className="search"
@@ -212,6 +185,7 @@ function Search({ query, setQuery }) {
       placeholder="映画を検索..."
       value={query}
       onChange={(e) => setQuery(e.target.value)}
+      ref={inputEl}
     />
   );
 }
@@ -315,6 +289,15 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
   const [isLoading, setIsLoading] = useState(false);
   const [userRating, setUserRating] = useState("");
 
+  const countRef = useRef(0);
+
+  useEffect(
+    function () {
+      if (userRating) countRef.current++;
+    },
+    [userRating]
+  );
+
   const isWatched = watched.map((movie) => movie.imdbID).includes(selectedId);
   const watchedUserRating = watched.find(
     (movie) => movie.imdbID === selectedId
@@ -359,6 +342,7 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
       runtime: Number(runtime.split(" ").at(0)),
       imdbRating: Number(imdbRating),
       userRating,
+      countRatingDecisions: countRef.current,
     };
     onAddWatched(newWatchedMovie);
     onCloseMovie();
